@@ -7,9 +7,9 @@ jdk:
 addons:
   sonarcloud:
     organization: "jacopofabi"
-    token: "ec5f0befd94f6d9fd1bde3fb6e8a360166a84963"
+    token: "2aad5c8ab407d4928a45e5483fea9c71f4a70ec4"
 
 script:
   # the following command line builds the project, runs the tests with coverage and then execute the SonarCloud analysis
   - mvn clean verify
-  - sonar:sonar -Dsonar.login=ec5f0befd94f6d9fd1bde3fb6e8a360166a84963
+  - sonar:sonar -Dsonar.login=2aad5c8ab407d4928a45e5483fea9c71f4a70ec4
