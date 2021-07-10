@@ -11,5 +11,4 @@ addons:
 
 script:
   # the following command line builds the project, runs the tests with coverage and then execute the SonarCloud analysis
-  - mvn clean verify
-  - sonar:sonar -Dsonar.login=2aad5c8ab407d4928a45e5483fea9c71f4a70ec4
+  - mvn clean verify sonar:sonar -Dsonar.projectKey=jacopofabi_ISW2-deliverable2
