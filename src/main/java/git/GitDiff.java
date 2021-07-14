@@ -3,6 +3,8 @@ package git;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.eclipse.jgit.diff.DiffEntry;
 
@@ -15,6 +17,7 @@ public class GitDiff {
 	String path;
 	List<String> renamePaths;
 	
+	Logger logger = Logger.getLogger(GitDiff.class.getName());
 	
 	public GitDiff (DiffEntry diff) {
 		this.diff = diff;
@@ -95,14 +98,14 @@ public class GitDiff {
 	 * [DEBUG] Stampa tutte le informazioni su un GitDiff
 	 */
 	public void print() {
-		System.out.println("CONT: "+this.content);
-		System.out.println("TYPE: "+this.type);
+		String str = String.format("CONT: %s%nTYPE: %s", this.content, this.type);
+		logger.log(Level.INFO, str);
 		if (isRename()) {
-			System.out.println("PAT1: "+this.renamePaths.get(0));
-			System.out.println("PAT2: "+this.renamePaths.get(1));
+			String log = String.format("PATH1: %s%PATH2: ", this.renamePaths.get(0), this.renamePaths.get(1));
+			logger.log(Level.INFO, log);
 		}
 		else {
-			System.out.println("PATH: "+this.path);
+			logger.log(Level.INFO, "PATH: {}", this.path);
 		}
 	}
 	

@@ -1,8 +1,11 @@
 package git;
 
 import java.util.Date;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.PersonIdent;
 
 import jira.JiraTicket;
 
@@ -13,7 +16,9 @@ public class GitCommit {
 	ObjectId parentID;
 	GitRelease release;
 	JiraTicket ticket;
+	PersonIdent author;
 	
+	Logger logger = Logger.getLogger(GitCommit.class.getName());
 
 	public GitCommit(ObjectId id, Date date, String message) {
 		this.id = id;
@@ -34,9 +39,7 @@ public class GitCommit {
 	 */
 	public void print() {
 		String output = String.format("ID: %s%ndate: %s%nmessage: %s", this.id, this.date, this.message);
-
-		System.out.println(output);
-		System.out.println("=".repeat(200));
+		logger.log(Level.INFO, output);
 	}
 
 	
@@ -45,9 +48,8 @@ public class GitCommit {
 	 */
 	public void printNoMsg() {
 		String output = String.format("ID: %s%ndate: %s", this.id, this.date);
-
-		System.out.println(output);
-		System.out.println("=".repeat(200));
+		
+		logger.log(Level.INFO, output);
 	}
 
 	
@@ -101,4 +103,13 @@ public class GitCommit {
 	public void setTicket(JiraTicket ticket) {
 		this.ticket = ticket;
 	}
+
+	public PersonIdent getAuthor() {
+		return author;
+	}
+
+	public void setAuthor(PersonIdent author) {
+		this.author = author;
+	}
+	
 }

@@ -2,8 +2,11 @@ package data;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
+import org.apache.log4j.Logger;
 import org.eclipse.jgit.diff.Edit;
 import org.eclipse.jgit.diff.EditList;
 import org.eclipse.jgit.errors.LargeObjectException;
@@ -23,18 +26,19 @@ public class Metrics {
 	private int chgSetSize;			//  9) Numero di file committed insieme alla classe
 	private int maxChgSetSize;		//  10) Numero massimo file committed insieme alla classe
 	private int avgChgSetSize;		//  11) Numero medio file committed insieme alla classe
-
+	private int nAuth;				//  12) Numero di autori che hanno toccato la classe (nella release)
+	private int churn; 				//  13) Differenza tra LocAdded e LocDeleted
+	private int maxChurn; 			//  14) Massimo tra tutti i churn delle revisioni (nella release)
+	private int avgChurn; 			//  15) Media tra tutti i churn delle revisioni (nella release)
+	
 	private int counterLocAdded;
 	private int counterChurn;
 	private int counterChgSet;
+	private List<String> listOfAuthors = new ArrayList<>();
 	
-	// Metriche non utilizzate
-	private int churn; 				//  8) Differenza tra LocAdded e LocDeleted
-	private int maxChurn; 			//  9) Massimo tra tutti i churn delle revisioni (nella release)
-	private int avgChurn; 			// 10) Media tra tutti i churn delle revisioni (nella release)
 
 	public Metrics() {
-		//Costruttore
+		// Empty Constructor
 	}
 	
 
@@ -52,7 +56,7 @@ public class Metrics {
 
 		while (scanner.hasNextLine()) {
 			String line = scanner.nextLine();
-			line = line.replace("\\s", "");
+			line = line.replaceAll("\\s+", "");
 			if (!(line.startsWith("/") || line.startsWith("*") || line.startsWith("//") || line.startsWith("*/")
 					|| line.equalsIgnoreCase(""))) {
 				calcSize = calcSize + 1;
@@ -176,12 +180,21 @@ public class Metrics {
 		this.avgChgSetSize = this.chgSetSize/counterChgSet;
 	}
 	
+	/*
+	 * Calcola il numero di autori che hanno interaggito su una classe C (nella release)
+	 */
+	public void calculateNAuth(String authorName) {
+		if (!listOfAuthors.contains(authorName)) {
+			nAuth++;
+			listOfAuthors.add(authorName);
+		}
+	}
 	
 	/*
 	 * [DEBUG] Stampa i dati sulle metriche
 	 */
 	public void print() {
-		System.out.println(String.format("Size: %d%nLocTouched: %d%nMaxLocAdded: %d%nChurn: %d%nMaxChurn: %d", size, locTouched,
+		Logger.getLogger(Metrics.class.getName()).info(String.format("Size: %d%nLocTouched: %d%nMaxLocAdded: %d%nChurn: %d%nMaxChurn: %d", size, locTouched,
 				maxLocAdded, churn, maxChurn));
 	}
 	
@@ -282,4 +295,13 @@ public class Metrics {
 	public void setSize(int size) {
 		this.size = size;
 	}
+
+	public int getnAuth() {
+		return nAuth;
+	}
+
+	public void setnAuth(int nAuth) {
+		this.nAuth = nAuth;
+	}
+	
 }

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.logging.Logger;
 
 import weka.attributeSelection.CfsSubsetEval;
 import weka.attributeSelection.GreedyStepwise;
@@ -11,14 +12,15 @@ import weka.classifiers.AbstractClassifier;
 import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.evaluation.Evaluation;
 import weka.classifiers.lazy.IBk;
+import weka.classifiers.meta.CostSensitiveClassifier;
 import weka.classifiers.trees.RandomForest;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.filters.Filter;
 import weka.filters.supervised.attribute.AttributeSelection;
 import weka.filters.supervised.instance.Resample;
-import weka.filters.supervised.instance.SpreadSubsample;
 import weka.filters.supervised.instance.SMOTE;
+import weka.filters.supervised.instance.SpreadSubsample;
 
 
 public class WekaProject {
@@ -26,14 +28,18 @@ public class WekaProject {
 	ArrayList<String> classifiers;
 	ArrayList<String> resamplingMethods;
 	ArrayList<String> featureSelectionMethods;
+	ArrayList<String> costSensitiveApproach;
 	private String name;
 	private Instances dataset;
+	private AbstractClassifier classifier = null;
 	
 	public WekaProject(String projectName) {
 		this.classifiers = new ArrayList<>(Arrays.asList("Random Forest", "Naive Bayes", "IBk"));
 		this.resamplingMethods = new ArrayList<>(Arrays.asList("no resample", "Oversampling", "Undersampling", "Smote"));
 		this.featureSelectionMethods = new ArrayList<>(Arrays.asList("no feature selection", "Best First"));
+		this.costSensitiveApproach = new ArrayList<>(Arrays.asList("no sensitive", "threshold", "sensitive learning"));
 		this.setName(projectName);
+		
 	}
 	
 	
@@ -49,14 +55,23 @@ public class WekaProject {
 		for(String classifierName : this.classifiers) {
 			for(String featureSelectionName : this.featureSelectionMethods) {
 				for(String resamplingMethodName : this.resamplingMethods) {	
+					for (String costSensitive : this.costSensitiveApproach) {
+						String configuration = String.format("Classifier: %s%nFeatureSelection: %s%nResampling: %s%nCostSensitive: %s%n--------", classifierName, featureSelectionName, resamplingMethodName, costSensitiveApproach);
+						Logger.getLogger(WekaProject.class.getName()).info(configuration);
 					//con walk-forward partiamo dalla seconda release come test set perche non abbiamo un training set per la prima
 					//terminiamo con l'ultima release come test set che avra tutte le precedenti come training set
-					for(int i = 2; i < releasesNumber+1; i++) {
-						WekaResult result = new WekaResult(classifierName, featureSelectionName, resamplingMethodName);
+					WekaResult mean = new WekaResult(classifierName, featureSelectionName, resamplingMethodName, costSensitive);
+					for(int i = 2; i < releasesNumber; i++) {	
+						WekaResult result = new WekaResult(classifierName, featureSelectionName, resamplingMethodName, costSensitive);
 						Instances[] trainTest = splitTrainingTestSet(getDataset(), i);
 						runWalkForwardIteration(trainTest, result, i);
 						resultList.add(result);
+						
+						mean.setTotalValues(result);
 					}
+					mean.calculateMean(releasesNumber-2);
+					resultList.add(mean);
+				}
 				}
 			}
 		}
@@ -103,6 +118,8 @@ public class WekaProject {
 	public void runWalkForwardIteration(Instances[] trainTest, WekaResult result, int iterationIndex) {
 		Instances trainingSet = trainTest[0];
 		Instances testSet = trainTest[1];
+		CostSensitiveClassifier costSensitiveClassifier = null;
+
 		
 		//rimuove dal dataset la feature relativa all'id della release, necessaria solo per splittare il dataset
 		int index = trainingSet.attribute(VERSIONID).index();
@@ -114,36 +131,20 @@ public class WekaProject {
 		testSet.setClassIndex(trainingSet.numAttributes()-1);
 		
 		//istanziamo gli oggetti da utilizzare in questa iterazione
-		AbstractClassifier classifier = null;
 		AttributeSelection featureSelection = null;
 		Filter resamplingMethod = null;
 		
-		//otteniamo il classificatore
-		switch(result.getClassifierName()) {
-			case "Random Forest":
-				classifier = new RandomForest();
-				break;
-			
-			case "Naive Bayes":
-				classifier = new NaiveBayes();
-				break;
-			
-			case "IBk":
-				classifier = new IBk();
-				break;
-			
-			default:
-				break;
-		}
+		//setUp classificatore
+		setupClassifier(result.getClassifierName());
 		
 		//applichiamo il metodo di balancing
 		try {
 			switch(result.getResamplingMethodName()) {
-				case "Undersampling":
+				case "Undersampling":										
 					resamplingMethod = new SpreadSubsample();
 					resamplingMethod.setInputFormat(trainingSet);
 					
-					String[] opts = new String[]{ "-M", "1.0"};
+					String[] opts = new String[]{ "-M", "1.0"};			
 					resamplingMethod.setOptions(opts);
 					
 					trainingSet = Filter.useFilter(trainingSet, resamplingMethod);
@@ -153,7 +154,7 @@ public class WekaProject {
 					resamplingMethod = new Resample();
 					resamplingMethod.setInputFormat(trainingSet);
 					
-					//calcolo della percentuale della classe maggioritaria
+					//Trovo qual è la classe maggioritaria per le opzioni del filtro 
 					int trainingSetSize = trainingSet.size();
 					int numInstancesTrue = getNumInstancesTrue(trainingSet);
 					double percentageTrue = (double)(numInstancesTrue)/(double)(trainingSetSize)*100.0;
@@ -166,7 +167,8 @@ public class WekaProject {
 					}
 					
 					String doublePercentageMajorityClassString = String.valueOf(percentageMajorityClass*2);
-					opts = new String[]{ "-B", "1.0", "-Z", doublePercentageMajorityClassString};
+					// -Z = la dimensione finale del dataset /2*majorityClasses)
+					opts = new String[]{ "-B", "1.0", "-Z", doublePercentageMajorityClassString};			
 					resamplingMethod.setOptions(opts);
 					
 					trainingSet = Filter.useFilter(trainingSet, resamplingMethod);
@@ -177,13 +179,16 @@ public class WekaProject {
 					double parameter = 0;
 					numInstancesTrue = getNumInstancesTrue(trainingSet);
 					int numInstancesFalse = trainingSet.numInstances()-numInstancesTrue;
+					
 					if(numInstancesTrue < numInstancesFalse && numInstancesTrue != 0) {
-						parameter = ((double)numInstancesFalse-(double)numInstancesTrue)/(double)numInstancesTrue*100.0;
+						parameter = (numInstancesFalse-numInstancesTrue)/numInstancesTrue*100.0;
 					} 
 					else if (numInstancesTrue >= numInstancesFalse && numInstancesFalse != 0){
-						parameter = ((double)numInstancesTrue-(double)numInstancesFalse)/(double)numInstancesFalse*100.0;
+						parameter = (numInstancesTrue-numInstancesFalse)/numInstancesFalse*100.0;
 					}
-		
+					
+					// -P = specifichiamo la percentuale delle istanze della classe minoritaria da creare per bilanciare il dataset
+					// Default = 100%  [ raddoppia le istanze minoritarie ] 
 					opts = new String[] {"-P", String.valueOf(parameter)};
 					resamplingMethod.setOptions(opts);
 					resamplingMethod.setInputFormat(trainingSet);
@@ -199,6 +204,28 @@ public class WekaProject {
 			}
 		} catch(Exception e) {
 			e.printStackTrace();
+		}
+		
+		switch (result.getCostSensitiveApproach()) {
+		case "no sensitive":
+			break;
+		
+		case "threshold":
+			costSensitiveClassifier = new CostSensitiveClassifier();
+			costSensitiveClassifier.setCostMatrix(WekaResult.getCostMatrix());
+			costSensitiveClassifier.setClassifier(classifier);
+			costSensitiveClassifier.setMinimizeExpectedCost(true);
+			break;
+			
+		case "sensitive learning":
+			costSensitiveClassifier = new CostSensitiveClassifier();
+			costSensitiveClassifier.setCostMatrix(WekaResult.getCostMatrix());
+			costSensitiveClassifier.setClassifier(classifier);
+			costSensitiveClassifier.setMinimizeExpectedCost(false);
+			break;
+		
+		default:
+			break;
 		}
 		
 		try {
@@ -223,17 +250,24 @@ public class WekaProject {
 				trainingSet.setClassIndex(numAttrFiltered - 1);
 				testSet.setClassIndex(numAttrFiltered - 1);
 			}
+			
+			
 		 
 			//salvo le informazioni relative al numero di release in training e alla percentuale di bugginess nel training e nel test set
 			result.setDatasetValues(trainingSet, testSet, iterationIndex);
 		
-			//addestro il classificatore con il training set
-			if(classifier != null)
-				classifier.buildClassifier(trainingSet);
-			
 			//effettuo la predizione sul test set
 			Evaluation eval = new Evaluation(testSet);
-			eval.evaluateModel(classifier, testSet);
+			
+			//addestro il classificatore con il training set
+			if(costSensitiveClassifier != null) {
+				costSensitiveClassifier.buildClassifier(trainingSet);
+				eval.evaluateModel(costSensitiveClassifier, testSet);
+			}else {
+				classifier.buildClassifier(trainingSet);
+				eval.evaluateModel(classifier, testSet);
+			}
+			
 			
 			//salvo i risultati nell'oggetto result
 			result.setValues(eval, getPositiveClassIndex());
@@ -275,6 +309,24 @@ public class WekaProject {
 		return numInstancesTrue;
 	}
 	
+	public void setupClassifier(String classifierName) {
+		switch (classifierName) {
+		case "Random Forest":
+			classifier = new RandomForest();
+			break;
+
+		case "Naive Bayes":
+			classifier = new NaiveBayes();
+			break;
+
+		case "IBk":
+			classifier = new IBk();
+			break;
+
+		default:
+			break;
+		}
+	}
 	
 	/*===============================================================================================
 	 * Getters & Setters

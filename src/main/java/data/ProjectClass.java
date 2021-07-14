@@ -1,11 +1,15 @@
 package data;
 
 import java.util.Date;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import git.GitRelease;
 import tools.PathHandler;
 
 public class ProjectClass {
+	
+	Logger logger = Logger.getLogger(ProjectClass.class.getName());
 	
 	private String path;
 	private String name;
@@ -76,11 +80,11 @@ public class ProjectClass {
 	}
 	
 	public void print() {
-		System.out.println("Class Name: "+this.path);
-		System.out.println("Class Rele: "+this.release.getName());
+		String str = String.format("Class Name: %s%nnClass Release: %s", this.path, this.release.getName());
+		logger.log(Level.INFO, str);
 		if (dateAdded!=null) {
-			System.out.println("Class Date: "+this.getDateAdded());
-			System.out.println("Reles Date: "+this.release.getDate());
+			String log = String.format("Class Date: %s%nRelease Date: %s", this.getDateAdded(), this.release.getDate());
+			logger.log(Level.INFO, log);
 		}
 	}
 }

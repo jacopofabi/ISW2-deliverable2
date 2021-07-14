@@ -1,5 +1,6 @@
 package weka;
 
+import weka.classifiers.CostMatrix;
 import weka.classifiers.evaluation.Evaluation;
 import weka.core.Instance;
 import weka.core.Instances;
@@ -15,6 +16,8 @@ public class WekaResult {
 	double auc;
 	double kappa;
 	
+	private boolean mean;
+	
 	private String projName;
 	private int numTrainingRelease;
 	private double percentageTraining;
@@ -24,12 +27,17 @@ public class WekaResult {
 	private String classifierName;
 	private String featureSelectionName;
 	private String resamplingMethodName;
+	private String costSensitiveApproach;
 	
-	public WekaResult(String classifierName, String featureSelectionName, String resamplingMethodName) {
+	private static final Integer FALSE_POSITIVE_COST = 1;
+	private static final Integer FALSE_NEGATIVE_COST = 10;
+	
+	public WekaResult(String classifierName, String featureSelectionName, String resamplingMethodName, String costSensitive) {
 		super();
 		this.setClassifierName(classifierName);
 		this.setFeatureSelectionName(featureSelectionName);
 		this.setResamplingMethodName(resamplingMethodName);
+		this.setCostSensitiveApproach(costSensitive);
 	}
 
 	
@@ -47,14 +55,14 @@ public class WekaResult {
 		int numBuggyTraining = 0;
 		int numFeatures = training.numAttributes();
 		for(Instance instance: training) {
-			if( ((String)instance.stringValue(numFeatures-1)).equalsIgnoreCase("true")) {
+			if( (instance.stringValue(numFeatures-1)).equalsIgnoreCase("true")) {
 				numBuggyTraining = numBuggyTraining + 1;
 			}
 		}
 		
 		int numBuggyTest = 0;
 		for(Instance instance: test) {
-			if( ((String)instance.stringValue(numFeatures-1)).equalsIgnoreCase("true")) {
+			if( (instance.stringValue(numFeatures-1)).equalsIgnoreCase("true")) {
 				numBuggyTest = numBuggyTest + 1;
 			}
 		}
@@ -92,11 +100,36 @@ public class WekaResult {
 		return str;
 	}
 	
+	public void setTotalValues(WekaResult result) {
+		this.tp = this.tp + result.getTP();
+		this.tn = this.tn + result.getTN();
+		this.fp = this.fp + result.getFP();
+		this.fn = this.fn + result.getFN();
+		this.kappa = this.kappa + result.getKappa();
+		this.recall = this.recall + result.getRecall();
+		this.precision = this.precision + result.getPrecision();
+		this.auc = this.auc + result.getAuc();
+	}
 	
+	public void calculateMean(int releases) {
+		tp = tp/releases;
+		fp = fp/releases;
+		fn = fn/releases;
+		tn = tn/releases;
+		kappa = kappa/releases;
+		recall = recall/releases;
+		precision = precision/releases;
+		auc = auc/releases;
+		this.mean = true;
+	}
 	
 	/*===============================================================================================
 	 * Getters & Setters
 	 */
+	
+	public boolean isMean() {
+		return this.mean;
+	}
 	
 	public double getTP() {
 		return tp;
@@ -213,6 +246,14 @@ public class WekaResult {
 	public String getResamplingMethodName() {
 		return resamplingMethodName;
 	}
+	
+	public String getCostSensitiveApproach() {
+		return costSensitiveApproach;
+	}
+	
+	public void setCostSensitiveApproach(String costSensitive) {
+		this.costSensitiveApproach = costSensitive;
+	}
 
 	public void setResamplingMethodName(String resamplingMethodName) {
 		this.resamplingMethodName = resamplingMethodName;
@@ -225,4 +266,15 @@ public class WekaResult {
 	public void setClassifierName(String classifierName) {
 		this.classifierName = classifierName;
 	}
+	
+	public static CostMatrix getCostMatrix() {
+			
+			CostMatrix costMatrix = new CostMatrix(2);
+			costMatrix.setElement(0, 0, 0);
+			costMatrix.setElement(0, 1, FALSE_NEGATIVE_COST);
+			costMatrix.setElement(1, 0, FALSE_POSITIVE_COST);
+			costMatrix.setElement(1, 1, 0);
+					
+			return costMatrix;
+		}
 }

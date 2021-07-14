@@ -2,10 +2,12 @@ package jira;
 
 import java.time.LocalDate;
 
+import org.apache.log4j.Logger;
+
 public class JiraRelease {
 	private String name;
 	private LocalDate date;
-	private int id;	//ID incrementale della release
+	private int id;			
 	
 	public JiraRelease(String name, LocalDate date) {
 		this.name = name;
@@ -13,13 +15,11 @@ public class JiraRelease {
 	}
 	
 	/*
-	 * [DEBUG] Stampa a schermo tutte le informazioni su una JiraRelease
+	 * [DEBUG] Printer
 	 */
 	public void print() {
 		String output = String.format("Name: %s%ndate: %s%nID: %d",this.name,this.date,this.id);
-		
-		System.out.println(output);
-		System.out.println("====================================================");
+		Logger.getLogger(JiraRelease.class.getName()).info(output);
 	}
 	
 	

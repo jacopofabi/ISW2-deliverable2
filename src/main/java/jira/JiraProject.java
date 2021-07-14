@@ -71,7 +71,6 @@ public class JiraProject {
 					+ "%22AND%22issueType%22=%22Bug%22AND(%22status%22=%22closed%22OR"
 					+ "%22status%22=%22resolved%22)AND%22resolution%22=%22fixed%22&fields=key,fixVersions,resolutiondate,versions,created&startAt="
 					+ i + "&maxResults=" + j;
-
 			JSONObject json = JsonHandler.readJsonFromUrl(query);
 			JSONArray issues = json.getJSONArray("issues");
 			nIssues = json.getInt("total");
@@ -95,7 +94,8 @@ public class JiraProject {
 					t.setAffectedVersions(versions);
 				tickets.add(t);
 			}
-		}	
+		}
+		
 		// Ottenuti tutti i ticket di Jira ritorniamo soltanto quelli con informazioni coerenti.
 		return filterTickets(tickets);
 	}
@@ -167,7 +167,7 @@ public class JiraProject {
 	}
 
 	
-	//TODO queste informazioni vanno nella relazione, qui bisogna lasciare una spiegazione del metodo
+	// queste informazioni vanno nella relazione, qui bisogna lasciare una spiegazione del metodo
 	/*
 	 * Assumiamo che OV=FV nel caso in cui si abbia OV>FV. 
 	 * Eliminiamo i ticket nei seguenti casi:
@@ -252,7 +252,7 @@ public class JiraProject {
 		JiraRelease ticketRelease = new JiraRelease();
 		for (Object v : json) {
 			JSONObject cleanV = (JSONObject) v;
-			if (cleanV.getBoolean(Parameters.RELEASED_JSON)) {
+			if (cleanV.getBoolean(Parameters.RELEASED_JSON) && cleanV.has("releaseDate")) {
 				String release = cleanV.getString(Parameters.NAME_JSON);
 				for(int i=0; i<releaseList.size(); i++) {
 					if(release.equalsIgnoreCase(releaseList.get(i).getName())) {

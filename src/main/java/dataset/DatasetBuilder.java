@@ -13,26 +13,20 @@ import git.GitCommit;
 import git.GitRelease;
 import git.GitRepo;
 import jira.JiraProject;
+import jira.JiraRelease;
 import jira.JiraTicket;
 import tools.CSVWriter;
 import tools.Parameters;
 import tools.PathHandler;
 
-// TODO Fare gestione degli errori/eccezioni
-// TODO scartare il 50% (forse no)
-// TODO vedere se separare GitRepo e JiraProject in Git/Jira API (GOD CLASSES)
-// TODO mettere init a JiraProject
-// TODO Iniziare Weka
-
-
 public class DatasetBuilder {
 
 	public void create(String projName) throws GitAPIException, IOException{
 		Logger logger = Logger.getLogger(DatasetBuilder.class.getName());
-		String repoURL = String.format("https://github.com/%s/%s", Parameters.GIT_PROJ_ORG, Parameters.GIT_PROJ_NAME);
-		String gitFolderPath = PathHandler.getGitPath() + Parameters.GIT_PROJ_NAME;
+		String repoURL = String.format("https://github.com/%s/%s", Parameters.GIT_PROJ_ORG, Parameters.getGitProjectName());
+		String gitFolderPath = PathHandler.getGitPath() + Parameters.getGitProjectName();
 		GitRepo repository = new GitRepo(repoURL, gitFolderPath);
-		JiraProject jiraClient = new JiraProject(Parameters.JIRA_PROJ_NAME);
+		JiraProject jiraClient = new JiraProject(projName);
 		
 		// Mantengo soltanto le GitRelease che hanno una corrispettiva release su Jira
 		List<GitRelease> commonReleases = repository.filterReleases(jiraClient.getReleaseList(), repository.getReleaseList());	
@@ -40,8 +34,10 @@ public class DatasetBuilder {
 		repository.fetchCommits();					// Chiamato dopo aver impostato le release comuni in GitRepo così da prendere solo i commit delle release Jira
 		repository.bindRevisionsToReleases();		// Associa ad ogni commit/revisione la relativa release
 		
+		
 		// Ottengo tutti i ticket di Jira. Per ogni ticket senza AV o IV andiamo ad effettuare una predizione con Proportion.
 		List<JiraTicket> ticketList = jiraClient.getTickets();
+		
 		Proportion.predictIV(Parameters.INCREMENTAL, ticketList, jiraClient.getReleaseList());
 		
 		// Otteniamo la lista di commit di tipo BugFix e la impostiamo nella lista della GitRepo
@@ -52,18 +48,24 @@ public class DatasetBuilder {
 		repository.setMetrics();																	
 
 		// Ottengo tutta la lista delle classi e calcolo per ognuna anche l'Age
-		List<ProjectClass> projectClassList = repository.getAllProjectClasses();
+		List<ProjectClass> projectClassList = repository.getClasses();
 		
 		// Genero il dataset
 		logger.log(Level.INFO,"Writing CSV...");
-		CSVWriter.writeClassOnCSV(projectClassList, Parameters.BOOKKEEPER, Parameters.DATASET_CSV);
-		CSVWriter.writeCSVForWeka(projectClassList, Parameters.BOOKKEEPER, Parameters.WEKA_CSV);
+		CSVWriter.writeClassOnCSV(projectClassList, projName, Parameters.DATASET_CSV);
+		CSVWriter.writeCSVForWeka(projectClassList, projName, Parameters.WEKA_CSV);
 		
 		logger.log(Level.INFO,"CSV written successfully.\nEnd of the program.");
 	}
 	
 	public static void main(String[] args) throws GitAPIException, IOException {
 		DatasetBuilder builder = new DatasetBuilder();
-		builder.create(Parameters.BOOKKEEPER);
+		String project1 = Parameters.BOOKKEEPER;
+		String project2 = Parameters.AVRO;
+		Parameters.setParameters(project1);
+		builder.create(project1);
+		
+		Parameters.setParameters(project2);
+		builder.create(project2);
 	}
 }

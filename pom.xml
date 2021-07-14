@@ -1,6 +1,6 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>Jacopo</groupId>
+  <groupId>jacopofabi</groupId>
   <artifactId>Deliverable2</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   
@@ -8,15 +8,6 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>8</maven.compiler.source>
     <maven.compiler.target>8</maven.compiler.target>
-    <sonar.host.url>https://sonarcloud.io</sonar.host.url>
-	<sonar.organization>jacopofabi</sonar.organization>
-	<!--<sonar.projectKey>jacopofabi_ISW2-deliverable2</sonar.projectKey>-->
-	<sonar.projectName>ISW2-deliverable2</sonar.projectName>
-	<sonar.login>2aad5c8ab407d4928a45e5483fea9c71f4a70ec4</sonar.login>
-	<sonar.language>java</sonar.language>
-	<sonar.java.source>11</sonar.java.source>
-	<sonar.java.file.suffixes>.java</sonar.java.file.suffixes>
-	<sonar.verbose>true</sonar.verbose>
   </properties>
   
   <build>
@@ -25,11 +16,12 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.8.1</version>
       </plugin>
-	  <plugin>
-		<groupId>org.sonarsource.scanner.maven</groupId>
-		<artifactId>sonar-maven-plugin</artifactId>
-		<version>3.6.0.1398</version>
-	   </plugin>
+      
+     	 <plugin>
+			<groupId>org.sonarsource.scanner.maven</groupId>
+			<artifactId>sonar-maven-plugin</artifactId>
+			<version>3.6.0.1398</version>
+		</plugin>
     </plugins>
   </build>
   
@@ -81,6 +73,9 @@
     	<artifactId>SMOTE</artifactId>
     	<version>1.0.3</version>
 	</dependency>
-  </dependencies>  
+
+
+  </dependencies>
+  
   
 </project>

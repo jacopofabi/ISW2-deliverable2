@@ -46,18 +46,9 @@ public class Proportion {
 		int ov;
 		int fv;
 		int predictedIV;
-		switch (mode) {
 		
-		case "incremental":
+		if ("incremental".equals(mode)) {
 			p = incremental(tickets);
-			break;
-
-		case "moving_window":
-			// TODO implementare movingwindow
-			break;
-
-		default:
-			// Default
 		}
 
 		for (JiraTicket t : tickets) {
@@ -67,8 +58,7 @@ public class Proportion {
 			// IV non presente, applichiamo proportion, e a seconda della IV stimata
 			// recuperiamo le informazioni dalla lista di releases
 			predictedIV = fv - p * (fv - ov + 1);
-				
-			if (predictedIV == 0) {
+			if (predictedIV <= 0) {
 				t.setIv(releases.get(0));
 			}
 			else {

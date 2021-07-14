@@ -21,13 +21,12 @@ import jira.JiraRelease;
 import jira.JiraTicket;
 
 public class CSVWriter {
-
+	
+	private static Logger logger = Logger.getLogger(CSVWriter.class.getName());
+	
 	private CSVWriter() {
 	}
 
-	/**
-	 * [DEBUG] Salva su un .csv i dati delle Release
-	 */
 	public static void writeReleasesOnCSV(List<GitRelease> releases, String projectName, String fileName) {
 
 		String outputName = Parameters.OUTPUT_PATH + projectName + fileName + ".csv";
@@ -41,14 +40,27 @@ public class CSVWriter {
 			fileWriter.append(outputBuilder.toString());
 
 		} catch (Exception e) {
-			Logger logger = Logger.getLogger(CSVWriter.class.getName());
-			logger.log(Level.SEVERE,Parameters.CSV_ERROR, e);
+			logger.log(Level.SEVERE, Parameters.CSV_ERROR, e);
+		}
+	}
+	
+	public static void writeJiraReleasesOnCSV(List<JiraRelease> releases, String projectName, String fileName) {
+
+		String outputName = Parameters.OUTPUT_PATH + projectName + fileName + ".csv";
+
+		try (FileWriter fileWriter = new FileWriter(outputName)) {
+			StringBuilder outputBuilder = new StringBuilder("ID;Version Name;Release Date\n");
+
+			for (JiraRelease r : releases) {
+				outputBuilder.append(r.getID() + ";" + r.getName() + ";" + r.getReleaseDate() + "\n");
+			}
+			fileWriter.append(outputBuilder.toString());
+
+		} catch (Exception e) {
+			logger.log(Level.SEVERE, Parameters.CSV_ERROR, e);
 		}
 	}
 
-	/**
-	 * [DEBUG] Salva su un .csv i dati dei Commit
-	 */
 	public static void writeCommitsOnCSV(List<GitCommit> commits, String projectName, String fileName) {
 
 		String outputName = Parameters.OUTPUT_PATH + projectName + fileName + ".csv";
@@ -60,17 +72,12 @@ public class CSVWriter {
 				outputBuilder.append(c.getId() + ";" + c.getDate() + ";" + c.getMessage() + "\n");
 			}
 			fileWriter.append(outputBuilder.toString());
-			System.out.println(outputName + "\tSAVED");
 
 		} catch (Exception e) {
-			Logger logger = Logger.getLogger(CSVWriter.class.getName());
 			logger.log(Level.SEVERE, Parameters.CSV_ERROR, e);
 		}
 	}
 
-	/**
-	 * [DEBUG] Salva su un .csv i dati dei JiraTicket
-	 */
 	public static void writeTicketOnCsv(List<JiraTicket> tickets, String projectName, String fileName) {
 
 		String outputName = Parameters.OUTPUT_PATH + projectName + fileName + ".csv";
@@ -92,172 +99,131 @@ public class CSVWriter {
 			fileWriter.append(outputBuilder.toString());
 
 		} catch (Exception e) {
-			Logger logger = Logger.getLogger(CSVWriter.class.getName());
 			logger.log(Level.SEVERE, Parameters.CSV_ERROR, e);
 		}
 	}
-	
-	/*
-	 * Crea il Dataset scrivendo su un file .csv la lista delle classi con le relative metriche.
-	 */
+
 	public static void writeClassOnCSV(List<ProjectClass> classes, String projectName, String fileName) {
-        Logger logger = Logger.getLogger(CSVWriter.class.getName());
 
-        try (FileWriter fileWriter = new FileWriter(Parameters.OUTPUT_PATH + projectName + fileName)) {
-            StringBuilder outputBuilder = new StringBuilder(
-                    "VersionID;VersionName;Path;Size;LOC_Touched;AVGLocAdded;LocAdded;MaxLocAdded;Churn;MaxChurn;ChgSetSize;MaxChgSetSize;AVGChgSetSize;NumRevisions;NumBugFixed;Age;Buggyness\n");
+		try (FileWriter fileWriter = new FileWriter(Parameters.OUTPUT_PATH + projectName + fileName)) {
+			StringBuilder outputBuilder = new StringBuilder(
+					"VersionID;VersionName;Path;Size;LOC_Touched;AVGLocAdded;LocAdded;MaxLocAdded;Churn;MaxChurn;ChgSetSize;MaxChgSetSize;AVGChgSetSize;NumRevisions;NumBugFixed;NAuth;Age;Buggyness\n");
 
-            for (ProjectClass c : classes) {
-            	Metrics metrics = c.getMetrics();
-                outputBuilder.append(c.getRelease().getId() + ";" + 
-                					 c.getRelease().getName() + ";" + 
-                					 c.getPath() + ";" + 
-                					 metrics.getSize() + ";" + 
-                					 metrics.getLocTouched() + ";" + 
-                					 metrics.getAvgLocAdded() + ";"+
-                					 metrics.getLocAdded() + ";"+
-                					 metrics.getMaxLocAdded() + ";"+
-                					 metrics.getChurn() + ";"+
-                					 metrics.getMaxChurn() + ";"+
-                					 metrics.getChgSetSize() + ";"+
-                					 metrics.getMaxChgSetSize() + ";"+
-                					 metrics.getAvgChgSetSize() + ";"+
-                					 metrics.getNumberRevisions() + ";"+
-                					 metrics.getNumberBugFixes() + ";"+
-                					 metrics.getAge() + ";" + 
-                					 c.isBuggy());
-                outputBuilder.append("\n");
-            }
-            fileWriter.append(outputBuilder.toString());
+			for (ProjectClass c : classes) {
+				Metrics metrics = c.getMetrics();
+				outputBuilder.append(c.getRelease().getId() + ";" + c.getRelease().getName() + ";" + c.getPath() + ";"
+						+ metrics.getSize() + ";" + metrics.getLocTouched() + ";" + metrics.getAvgLocAdded() + ";"
+						+ metrics.getLocAdded() + ";" + metrics.getMaxLocAdded() + ";" + metrics.getChurn() + ";"
+						+ metrics.getMaxChurn() + ";" + metrics.getChgSetSize() + ";" + metrics.getMaxChgSetSize() + ";"
+						+ metrics.getAvgChgSetSize() + ";" + metrics.getNumberRevisions() + ";"
+						+ metrics.getNumberBugFixes() + ";" + metrics.getnAuth() + ";" + metrics.getAge() + ";"
+						+ c.isBuggy());
+				outputBuilder.append("\n");
+			}
+			fileWriter.append(outputBuilder.toString());
 
-        } catch (Exception e) {
-            logger.log(Level.SEVERE, Parameters.CSV_ERROR, e);
-        }
-    } 
-	
-	/*
-	 * Crea un file .csv dove le colonne sono separate tramite "," così da evidenziare gli attributi per Weka e creare un ARFF corretto
-	 */
+		} catch (Exception e) {
+			logger.log(Level.SEVERE, Parameters.CSV_ERROR, e);
+		}
+	}
+
 	public static void writeCSVForWeka(List<ProjectClass> classes, String projectName, String fileName) {
-        Logger logger = Logger.getLogger(CSVWriter.class.getName());
 
-        try (FileWriter fileWriter = new FileWriter(Parameters.OUTPUT_PATH + projectName + fileName)) {
-            StringBuilder outputBuilder = new StringBuilder(
-                    "VersionID,VersionName,Path,Size,LOC_Touched,AVGLocAdded,LocAdded,MaxLocAdded,Churn,MaxChurn,ChgSetSize,MaxChgSetSize,AVGChgSetSize,NumRevisions,NumBugFixed,Age,Buggyness\n");
+		try (FileWriter fileWriter = new FileWriter(Parameters.OUTPUT_PATH + projectName + fileName)) {
+			StringBuilder outputBuilder = new StringBuilder(
+					"VersionID,VersionName,Path,Size,LOC_Touched,AVGLocAdded,LocAdded,MaxLocAdded,Churn,MaxChurn,ChgSetSize,MaxChgSetSize,AVGChgSetSize,NumRevisions,NumBugFixed,NAuth,Age,Buggyness\n");
 
-            for (ProjectClass c : classes) {
-            	Metrics metrics = c.getMetrics();
-                outputBuilder.append(c.getRelease().getId() + "," + 
-                					 c.getRelease().getName() + "," + 
-                					 c.getPath() + "," + 
-                					 metrics.getSize() + "," + 
-                					 metrics.getLocTouched() + "," + 
-                					 metrics.getAvgLocAdded() + ","+
-                					 metrics.getLocAdded() + ","+
-                					 metrics.getMaxLocAdded() + ","+
-                					 metrics.getChurn() + ","+
-                					 metrics.getMaxChurn() + ","+
-                					 metrics.getChgSetSize() + ","+
-                					 metrics.getMaxChgSetSize() + ","+
-                					 metrics.getAvgChgSetSize() + ","+
-                					 metrics.getNumberRevisions() + ","+
-                					 metrics.getNumberBugFixes() + ","+
-                					 metrics.getAge() + "," + 
-                					 c.isBuggy());
-                outputBuilder.append("\n");
-            }
-            fileWriter.append(outputBuilder.toString());
+			for (ProjectClass c : classes) {
+				Metrics metrics = c.getMetrics();
+				outputBuilder.append(c.getRelease().getId() + "," + c.getRelease().getName() + "," + c.getPath() + ","
+						+ metrics.getSize() + "," + metrics.getLocTouched() + "," + metrics.getAvgLocAdded() + ","
+						+ metrics.getLocAdded() + "," + metrics.getMaxLocAdded() + "," + metrics.getChurn() + ","
+						+ metrics.getMaxChurn() + "," + metrics.getChgSetSize() + "," + metrics.getMaxChgSetSize() + ","
+						+ metrics.getAvgChgSetSize() + "," + metrics.getNumberRevisions() + ","
+						+ metrics.getNumberBugFixes() + "," + metrics.getnAuth() + "," + metrics.getAge() + "," + c.isBuggy());
+				outputBuilder.append("\n");
+			}
+			fileWriter.append(outputBuilder.toString());
 
-        } catch (Exception e) {
-            logger.log(Level.SEVERE, Parameters.CSV_ERROR, e);
-        }
-    } 
-	
-	/*
-	 * Scrive su un file .csv i risultati ottenuti tramite Weka.
-	 */
+		} catch (Exception e) {
+			logger.log(Level.SEVERE, Parameters.CSV_ERROR, e);
+		}
+	}
+
 	public static void writeResultOnCSV(List<WekaResult> results, String projectName, String fileName) {
-		Logger logger = Logger.getLogger(CSVWriter.class.getName());
 
-        try (FileWriter fileWriter = new FileWriter(Parameters.OUTPUT_PATH + projectName + fileName)) {
-            StringBuilder outputBuilder = new StringBuilder(
-            		"Progetto;#Training Release;%Training;%Buggy in training;%Buggy in test;Classifier;Feature selection;"
-            				+ "Balancing;TP;FP;TN;FN;Precision;Recall;Area Under ROC;Kappa\n");
-            for (WekaResult r : results) {
-                outputBuilder.append(projectName + ";" + 
-                					 r.getNumTrainingRelease() + ";" + 
-                					 String.format(Locale.US, "%.2f", r.getPercentageTraining()) + ";" + 
-                					 String.format(Locale.US, "%.2f", r.getPercentageBuggyInTraining()) + ";" + 
-                					 String.format(Locale.US, "%.2f", r.getPercentageBuggyInTesting()) + ";" + 
-                					 r.getClassifierName() + ";"+
-                					 r.getFeatureSelectionName() + ";"+
-                					 r.getResamplingMethodName() + ";"+
-                					 r.getTP() + ";"+
-                					 r.getFP() + ";"+
-                					 r.getTN() + ";"+
-                					 r.getFN() + ";"+
-                					 String.format(Locale.US, "%.2f", r.getPrecision()) + ";"+
-                					 String.format(Locale.US, "%.2f", r.getRecall()) + ";"+
-                					 String.format(Locale.US, "%.2f", r.getAuc()) + ";"+
-                					 String.format(Locale.US, "%.2f", r.getKappa()));
-                outputBuilder.append("\n");
-            }
-            fileWriter.append(outputBuilder.toString());
+		try (FileWriter fileWriter = new FileWriter(Parameters.OUTPUT_PATH + projectName + fileName)) {
+			StringBuilder outputBuilder = new StringBuilder(
+					"Progetto;#Training Release;%Training;%Buggy in training;%Buggy in test;Classifier;Feature selection;"
+							+ "Balancing;CostSensitive;TP;FP;TN;FN;Precision;Recall;Area Under ROC;Kappa\n");
+			for (WekaResult r : results) {
+				if (r.isMean()) {
+					outputBuilder.append("MEAN;" + ";" + ";" + ";" + ";" + ";" + ";" + ";" +";");
+				} else {
+					outputBuilder.append(projectName + ";" + r.getNumTrainingRelease() + ";"
+							+ String.format(Locale.US, "%.2f", r.getPercentageTraining()) + ";"
+							+ String.format(Locale.US, "%.2f", r.getPercentageBuggyInTraining()) + ";"
+							+ String.format(Locale.US, "%.2f", r.getPercentageBuggyInTesting()) + ";"
+							+ r.getClassifierName() + ";" + r.getFeatureSelectionName() + ";"
+							+ r.getResamplingMethodName() + ";" + r.getCostSensitiveApproach() + ";");
+				}
 
-        } catch (Exception e) {
-            logger.log(Level.SEVERE, Parameters.CSV_ERROR, e);
-        }
-    } 
-	
-	/*
-	 * Converte un file CSV in un file ARFF da fornire a Weka.
-	 */
+				outputBuilder.append(String.format(Locale.US, "%.2f", r.getTP()) + ";"
+						+ String.format(Locale.US, "%.2f", r.getFP()) + ";"
+						+ String.format(Locale.US, "%.2f", r.getTN()) + ";"
+						+ String.format(Locale.US, "%.2f", r.getFN()) + ";"
+						+ String.format(Locale.US, "%.2f", r.getPrecision()) + ";"
+						+ String.format(Locale.US, "%.2f", r.getRecall()) + ";"
+						+ String.format(Locale.US, "%.2f", r.getAuc()) + ";"
+						+ String.format(Locale.US, "%.2f", r.getKappa()));
+				outputBuilder.append("\n");
+			}
+			fileWriter.append(outputBuilder.toString());
+
+		} catch (Exception e) {
+			logger.log(Level.SEVERE, Parameters.CSV_ERROR, e);
+		}
+	}
+
 	public static void convertCSVtoARFF(String fileName) {
-	    try {
+		try {
 			// load CSV
-		    Instances data = loadFileCSV(fileName);
-		    // save ARFF
-		    ArffSaver saver = new ArffSaver();
-		    saver.setInstances(data);
-		    saver.setFile(new File(fileName.replace(Parameters.WEKA_CSV, Parameters.DATASET_ARFF)));
+			Instances data = loadFileCSV(fileName);
+			// save ARFF
+			ArffSaver saver = new ArffSaver();
+			saver.setInstances(data);
+			saver.setFile(new File(fileName.replace(Parameters.WEKA_CSV, Parameters.DATASET_ARFF)));
 			saver.writeBatch();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
-	
-	/*
-	 * Carica il file CSV contenente il dataset ed elimina le colonne inutili alla stima (feature selection preventiva)
-	 * L'ID della release viene eliminato successivamente perchè necessario nell'iterazione di walk forward
-	 */
+
 	private static Instances loadFileCSV(String fileName) {
 		CSVLoader loader = new CSVLoader();
 		Instances data = null;
 		int index = 0;
-    	try {
+		try {
 			loader.setSource(new File(fileName));
-	    	data = loader.getDataSet();
-	    	
-	    	//elimino le colonne relative al nome della versione e al nome del file
-	    	index = data.attribute("VersionName").index();
-	    	data.deleteAttributeAt(index);
-	    	index = data.attribute("Path").index();
+			data = loader.getDataSet();
+
+			// eliminazione colonne
+			index = data.attribute("VersionName").index();	
+			data.deleteAttributeAt(index);
+			index = data.attribute("Path").index();
 			data.deleteAttributeAt(index);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		return data;
 	}
-	
-	/*
-	 * Carica il file ARFF contenente il dataset
-	 */
+
 	public static Instances loadFileARFF(String fileName) {
 		DataSource source;
 		Instances data = null;
 		try {
 			source = new DataSource(fileName);
-		    data = source.getDataSet();
+			data = source.getDataSet();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

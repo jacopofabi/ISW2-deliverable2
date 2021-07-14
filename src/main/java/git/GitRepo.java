@@ -65,12 +65,16 @@ public class GitRepo {
 		for (RevCommit c : logCommits) {
 			Date date = DateHandler.getDateFromEpoch(c.getCommitTime() * 1000L);
 			ObjectId parentID = null;
+			
+			// PersonIndent per NAuthors metric
+			
 			if (c.getParentCount() != 0) {
 				parentID = c.getParent(0);
 			}
 
 			GitCommit commit = new GitCommit(c.getId(), date, c.getFullMessage());
 			commit.setParentID(parentID); 
+			commit.setAuthor(c.getAuthorIdent());
 			this.commitList.add(commit);
 		}
 		orderCommitList();
@@ -99,10 +103,10 @@ public class GitRepo {
 		RevWalk walk = new RevWalk(this.git.getRepository());
 
 		for (Ref tag : tagList) {
-
+			
 			String tagName = tag.getName();
-			String releaseName = tagName.substring((Parameters.FILTER_REL_NAME + Parameters.TAG_FORMAT).length());
-
+				String releaseName = tagName.substring(( Parameters.getTagFormat()).length());
+			
 			// Alcuni tag contengono una versione per docker e non una release
 			if (releaseName.contains("docker")) {
 				continue;
@@ -116,6 +120,13 @@ public class GitRepo {
 		}
 		setDefaultAdditionDates();
 		walk.close();
+		
+		//il progetto "avro" presenta su Git i nomi delle release in forma: release-number, per questo effettuiamo una pulizia così da confrontarle con le release di Jira
+		if(this.remote.contains(Parameters.AVRO.toLowerCase())) {
+			for(GitRelease gr : this.getReleaseList()) {
+				gr.setName(gr.getName().replace("release-", ""));
+			}
+		}
 	}
 	
 	
@@ -226,9 +237,17 @@ public class GitRepo {
 		// Ordino le release di Jira e Git in base alla data ed assegno gli ID incrementali ad entrambe
 		jiraReleases.sort(Comparator.comparing(JiraRelease::getReleaseDate));
 		commonReleases.sort(Comparator.comparing(GitRelease::getDate));
+		int lastID = 0;
 		for (int i = 0; i < commonReleases.size(); i++) {
 			commonReleases.get(i).setId(i + 1);
 			jiraReleases.get(i).setID(i + 1);
+			lastID = i;
+		}
+		
+		if (jiraReleases.size()> commonReleases.size() && !Parameters.getGitProjectName().equalsIgnoreCase("bookkeeper")) {
+			for (int i=lastID-1; i<jiraReleases.size(); i++) {
+				jiraReleases.get(i).setID(i+1);
+			}
 		}
 		return commonReleases;
 	}
@@ -305,6 +324,7 @@ public class GitRepo {
 			// Set del chgSetSize && numberRevisions a prescindere dal tipo di Diff
 			projectClass.getMetrics().increaseChgSetSize(chgSetSize);
 			projectClass.getMetrics().increaseNumberRevisions();
+			projectClass.getMetrics().calculateNAuth(commit.getAuthor().getName());
 		}
 	}
 
@@ -319,11 +339,12 @@ public class GitRepo {
 		
 		for (JiraRelease av:affectedVersions) {
 			GitRelease gitAv = getReleaseByName(av.getName());
-			ProjectClass projClass = gitAv.getProjectClass(pathClass);
-			if (projClass!=null) {
-				projClass.setBuggy(true);				
+			if (gitAv != null) {
+				ProjectClass projClass = gitAv.getProjectClass(pathClass);
+				if (projClass!=null) {
+					projClass.setBuggy(true);				
+				}
 			}
-			
 		}
 	}
 	
@@ -388,6 +409,31 @@ public class GitRepo {
 			calcMetricsFromDiff(c);
 		}
 	}
+	
+	public List<ProjectClass> getClasses() {
+		if (Parameters.getGitProjectName().equalsIgnoreCase("openjpa"))
+			return getHalfClasses();
+		else return getAllProjectClasses();
+	}
+	
+	public List<ProjectClass> getHalfClasses() {
+        int total = this.releaseList.size();
+        GitRelease endSnoring = this.releaseList.get(total/2); 
+        List<ProjectClass> list = new ArrayList<>();
+        for (GitRelease r:this.releaseList) {
+            if (r.equals(endSnoring)) {
+                return list;
+            }
+            for (ProjectClass p:r.getClassList()) {
+                Date additionDate = p.getDateAdded();
+                Date releaseDate = p.getRelease().getDate();
+                int age = DateHandler.getWeeksBetweenDates(additionDate, releaseDate);
+                p.getMetrics().setAge(age);
+                list.add(p);
+            }
+        }
+        return list;
+    }
 	
 	
 	
