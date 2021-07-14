@@ -21,6 +21,7 @@ public class Parameters {
 	public static final String FILTER_REL_NAME = "release-";
 	public static final String FILTER_FILE_TYPE = ".java";
 	public static final String RELEASED_JSON = "released";
+	public static final String RELEASE_DATE = "releaseDate";
 	public static final String NAME_JSON = "name";
 	public static final String INCREMENTAL = "incremental";
 	public static final String MOVING_WINDOW = "moving_window";

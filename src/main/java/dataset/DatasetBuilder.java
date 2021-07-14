@@ -13,7 +13,6 @@ import git.GitCommit;
 import git.GitRelease;
 import git.GitRepo;
 import jira.JiraProject;
-import jira.JiraRelease;
 import jira.JiraTicket;
 import tools.CSVWriter;
 import tools.Parameters;

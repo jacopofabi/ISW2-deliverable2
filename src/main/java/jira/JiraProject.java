@@ -39,8 +39,8 @@ public class JiraProject {
 			for (int i = 0; i < releasesList.length(); i++) {
 				JSONObject tempRelease = releasesList.getJSONObject(i);
 
-				if (tempRelease.has("releaseDate") && tempRelease.getBoolean(Parameters.RELEASED_JSON)) {
-					LocalDate releaseDate = LocalDate.parse(tempRelease.getString("releaseDate"));
+				if (tempRelease.has(Parameters.RELEASE_DATE) && tempRelease.getBoolean(Parameters.RELEASED_JSON)) {
+					LocalDate releaseDate = LocalDate.parse(tempRelease.getString(Parameters.RELEASE_DATE));
 					JiraRelease release = new JiraRelease();
 					release.setName(tempRelease.getString(Parameters.NAME_JSON));
 					release.setReleaseDate(releaseDate);
@@ -252,7 +252,7 @@ public class JiraProject {
 		JiraRelease ticketRelease = new JiraRelease();
 		for (Object v : json) {
 			JSONObject cleanV = (JSONObject) v;
-			if (cleanV.getBoolean(Parameters.RELEASED_JSON) && cleanV.has("releaseDate")) {
+			if (cleanV.getBoolean(Parameters.RELEASED_JSON) && cleanV.has(Parameters.RELEASE_DATE)) {
 				String release = cleanV.getString(Parameters.NAME_JSON);
 				for(int i=0; i<releaseList.size(); i++) {
 					if(release.equalsIgnoreCase(releaseList.get(i).getName())) {
